@@ -38,7 +38,7 @@ class ReportGenerator @Inject()(
   private[this] val emailSender = new EmailSender(log)
 
   private[this] def sendReport(report: ReportData) =
-    emailSender(buildMessage(report))
+    buildMessage(report).fold(Future.value(()))(emailSender.apply)
 
   def buildSubject(serviceName: String, criticalDiffs: Int) =
     if (criticalDiffs == 0) {
@@ -47,14 +47,16 @@ class ReportGenerator @Inject()(
       s"[diffy] ${serviceName} ${criticalDiffs} critical"
     }
 
-  def buildMessage(report: ReportData) : SimpleMessage = {
-    SimpleMessage(
-      from = "Diffy <diffy@no-reply.com>",
-      to = settings.teamEmail,
-      bcc = settings.teamEmail,
-      subject = buildSubject(report.serviceName, report.criticalDiffs),
-      body = mustacheService.createString("cron_report.mustache", report)
-    )
+  def buildMessage(report: ReportData) : Option[SimpleMessage] = {
+    settings.teamEmail.map { email =>
+      SimpleMessage(
+        from = "Diffy <diffy@no-reply.com>",
+        to = email,
+        bcc = email,
+        subject = buildSubject(report.serviceName, report.criticalDiffs),
+        body = mustacheService.createString("cron_report.mustache", report)
+      )
+    }
   }
 
   private[this] val filter =

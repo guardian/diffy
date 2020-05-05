@@ -80,6 +80,10 @@ object DiffyServiceModule extends TwitterModule {
   val resourceMappings =
     flag[String]("resource.mapping", "", "Coma separated list of resource paths and names. Each resource is separated by a colon. Example '/foo:foo-resource,/bar:bar-resource")
 
+  // TODO: support non TLS
+  val statsEndpoint =
+    flag[String]("stats.endpoint", "", "Endpoint to send stats to (over TLS). Example 'diffyproject.appspot.com'")
+
   @Provides
   @Singleton
   def settings =
@@ -98,7 +102,7 @@ object DiffyServiceModule extends TwitterModule {
       enableThriftMux(),
       relativeThreshold(),
       absoluteThreshold(),
-      teamEmail(),
+      teamEmail.get,
       Duration.fromMinutes(emailDelay()),
       rootUrl(),
       allowHttpSideEffects(),
@@ -116,7 +120,8 @@ object DiffyServiceModule extends TwitterModule {
         }
         .map(x => (x(0), x(1)))
         .toList)
-        .map(new ResourceMatcher(_))
+        .map(new ResourceMatcher(_)),
+      statsEndpoint = statsEndpoint.get
     )
 
   @Provides

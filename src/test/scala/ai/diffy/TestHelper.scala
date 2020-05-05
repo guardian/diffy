@@ -24,14 +24,15 @@ object TestHelper extends MockitoSugar {
     enableThriftMux = false,
     relativeThreshold = 0.0,
     absoluteThreshold = 0.0,
-    teamEmail = "test",
+    teamEmail = Some("test"),
     emailDelay = Duration.fromSeconds(0),
     rootUrl = "test",
     allowHttpSideEffects = true,
     excludeHttpHeadersComparison = true,
     skipEmailsWhenNoErrors = false,
     httpsPort = "443",
-    useFramedThriftTransport = false
+    useFramedThriftTransport = false,
+    statsEndpoint = Some("diffyproject.appspot.com")
   )
 
   def makeEmptyJoinedDifferences = {

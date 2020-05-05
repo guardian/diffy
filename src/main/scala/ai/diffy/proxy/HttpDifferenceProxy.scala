@@ -6,10 +6,17 @@ import ai.diffy.analysis.{DifferenceAnalyzer, InMemoryDifferenceCollector, Joine
 import ai.diffy.lifter.{HttpLifter, Message}
 import ai.diffy.proxy.DifferenceProxy.NoResponseException
 import com.twitter.finagle.http.{Method, Request, Response, Status}
+import com.twitter.finagle.service.{RetryFilter, RetryPolicy}
+import com.twitter.finagle.stats.NullStatsReceiver
+import com.twitter.finagle.util.DefaultTimer
 import com.twitter.finagle.{Filter, Http, Service}
-import com.twitter.util.{Future, Try}
+import com.twitter.logging.Logger
+import com.twitter.util.{Future, StorageUnit, Throw, Try}
 
 object HttpDifferenceProxy {
+
+  val log = Logger(classOf[HttpDifferenceProxy])
+
   val okResponse = Future.value(Response(Status.Ok))
 
   val noResponseExceptionFilter =
@@ -40,8 +47,24 @@ trait HttpDifferenceProxy extends DifferenceProxy {
   override type Rep = Response
   override type Srv = HttpService
 
-  override def serviceFactory(serverset: String, label: String) =
-    HttpService(requestHostHeaderFilter(serverset) andThen Http.newClient(serverset, label).toService)
+  override def serviceFactory(serverset: String, label: String): HttpService = {
+
+    // TODO: make configurable
+    val retryPolicy = RetryPolicy.tries[(Request, Try[Response])](3, {
+      case (req, Throw(err)) =>
+        log.warning(err, s"error executing request $req")
+        true
+    })
+
+    val retryFilter = new RetryFilter[Request, Response](retryPolicy, DefaultTimer, NullStatsReceiver)
+
+    val service = Http.client
+      // TODO: make configurable
+      .withMaxResponseSize(StorageUnit.fromMegabytes(20))
+      .newService(serverset, label)
+
+    HttpService(retryFilter andThen requestHostHeaderFilter(serverset) andThen service)
+  }
 
   override lazy val server =
     Http.serve(

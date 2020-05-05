@@ -15,7 +15,9 @@ class FunctionalReport @Inject()(
   val delay = settings.emailDelay
 
   override def run(start: Time) = {
-    log.info(s"Sending FunctionalReport at ${Time.now}")
-    reportGenerator.sendEmail
+    settings.teamEmail.foreach { _ =>
+      log.info(s"Sending FunctionalReport at ${Time.now}")
+      reportGenerator.sendEmail
+    }
   }
 }

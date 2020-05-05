@@ -20,7 +20,7 @@ case class Settings(
                      enableThriftMux: Boolean,
                      relativeThreshold: Double,
                      absoluteThreshold: Double,
-                     teamEmail: String,
+                     teamEmail: Option[String],
                      emailDelay: Duration,
                      rootUrl: String,
                      allowHttpSideEffects: Boolean,
@@ -30,4 +30,5 @@ case class Settings(
                      useFramedThriftTransport: Boolean,
                      hostname: String = Try(java.lang.management.ManagementFactory.getRuntimeMXBean.getName.split("@")(1)).getOrElse("unknown"),
                      user: String = Try(sys.env("USER")).getOrElse("unknown"),
-                     resourceMatcher: Option[ResourceMatcher] = None)
+                     resourceMatcher: Option[ResourceMatcher] = None,
+                     statsEndpoint: Option[String])
